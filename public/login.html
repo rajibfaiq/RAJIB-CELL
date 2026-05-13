@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | SIMRS RS Sejahtera</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/simrs.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="hospital-icon">
+          <i class="fas fa-hospital"></i>
+        </div>
+        <h1>RS Sejahtera</h1>
+        <p>Sistem Informasi Manajemen Rumah Sakit</p>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <div class="input-wrapper">
+            <i class="fas fa-user"></i>
+            <input type="text" id="username" placeholder="Masukkan username" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrapper">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="password" placeholder="Masukkan password" required>
+          </div>
+        </div>
+        <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+          <label style="font-size:13px; color:var(--gray-600); display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" style="accent-color:var(--blue-600);"> Ingat saya
+          </label>
+          <a href="#" style="font-size:13px; color:var(--blue-600); font-weight:500;">Lupa password?</a>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-sign-in-alt"></i> Masuk
+        </button>
+      </form>
+      <div style="text-align:center; margin-top:24px; padding-top:20px; border-top:1px solid var(--gray-100);">
+        <p style="font-size:12px; color:var(--gray-400);">© 2026 SIMRS RS Sejahtera v1.0</p>
+      </div>
+    </div>
+  </div>
+  <script src="js/simrs.js"></script>
+</body>
+</html>
