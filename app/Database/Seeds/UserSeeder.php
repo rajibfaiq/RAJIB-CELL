@@ -16,15 +16,7 @@ class UserSeeder extends Seeder
                 'role'     => 'admin',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
-            ],
-            [
-                'username' => 'staff',
-                'password' => password_hash('staff123', PASSWORD_DEFAULT),
-                'fullname' => 'Staff SIMRS',
-                'role'     => 'staff',
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ],
+            ],          
         ];
 
         // Using Query Builder

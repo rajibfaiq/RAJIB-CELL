@@ -14,6 +14,7 @@
       <div class="login-logo">
         <div class="hospital-icon"><i class="fas fa-hospital"></i></div>
         <h1>RS Sejahtera</h1>
+        <p style="font-size:14px;font-weight:600;color:var(--blue-600);margin-top:4px;letter-spacing:1px;">Kelompok 2</p>
         <p>Sistem Informasi Manajemen Rumah Sakit</p>
       </div>
       <?php if (session()->getFlashdata('error')): ?>
@@ -42,9 +43,10 @@
             <input type="checkbox" name="remember" style="accent-color:var(--blue-600);"> Ingat saya
           </label>
         </div>
-        <button type="submit" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Masuk</button>
+        <button type="submit" class="btn btn-primary" style="margin-bottom: 12px;"><i class="fas fa-sign-in-alt"></i> Masuk</button>
+        <a href="<?= site_url('register') ?>" class="btn btn-outline" style="display: block; text-align: center; text-decoration: none; padding: 12px; font-weight: 700; border-radius: 8px;"><i class="fas fa-user-plus"></i> Daftar Pasien Baru</a>
       </form>
-      <div style="text-align:center;margin-top:24px;padding-top:20px;border-top:1px solid var(--gray-100);">
+      <div style="text-align:center;margin-top:20px;padding-top:15px;border-top:1px solid var(--gray-100);">
         <p style="font-size:12px;color:var(--gray-400);">© 2026 SIMRS RS Sejahtera v1.0</p>
       </div>
     </div>
