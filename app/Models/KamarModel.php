@@ -17,7 +17,14 @@ class KamarModel extends Model
      */
     public function getJoinedData()
     {
-        return $this->select('kamar.*, pasien.NAMA_PASIEN')
+        return $this->select('kamar.*, pasien.NAMA_PASIEN, (
+                        SELECT p.NAMA_PASIEN 
+                        FROM perawatan r 
+                        JOIN pasien p ON p.ID_PASIEN = r.ID_PASIEN 
+                        WHERE r.ID_KAMAR = kamar.ID_KAMAR 
+                        ORDER BY r.ID_PERAWATAN DESC 
+                        LIMIT 1
+                     ) AS NAMA_PASIEN_PERAWATAN')
                     ->join('pemeriksaan', 'pemeriksaan.ID_PERIKSA = kamar.ID_PERIKSA', 'left')
                     ->join('pasien', 'pasien.ID_PASIEN = pemeriksaan.ID_PASIEN', 'left')
                     ->findAll();

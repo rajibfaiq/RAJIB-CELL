@@ -10,16 +10,26 @@ class PerawatanModel extends Model
     protected $primaryKey       = 'ID_PERAWATAN';
     protected $useAutoIncrement = false;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['ID_PERAWATAN', 'ID_KAMAR', 'ID_PASIEN', 'RAWAT_INAP', 'RAWAT_JALAN'];
+    protected $allowedFields    = ['ID_PERAWATAN', 'ID_KAMAR', 'ID_PASIEN', 'TGL_PERAWATAN', 'RAWAT_INAP', 'RAWAT_JALAN'];
 
     /**
      * Get joined data with Pasien and Kamar names
      */
     public function getJoinedData()
     {
-        return $this->select('perawatan.*, pasien.NAMA_PASIEN, kamar.NOMOR_KAMAR')
+        return $this->select('perawatan.ID_PERAWATAN, perawatan.ID_PASIEN, perawatan.ID_KAMAR, perawatan.TGL_PERAWATAN, perawatan.RAWAT_JALAN, perawatan.RAWAT_INAP, pasien.NAMA_PASIEN, kamar.NOMOR_KAMAR, 
+                             (SELECT pd.NO_PENDAFTARAN FROM pendaftaran pd 
+                              WHERE pd.ID_PASIEN = perawatan.ID_PASIEN 
+                              ORDER BY 
+                                (DATE(pd.TANGGAL_DAFTAR) = DATE(perawatan.TGL_PERAWATAN)) DESC, 
+                                pd.TANGGAL_DAFTAR DESC 
+                              LIMIT 1) AS NO_PENDAFTARAN,
+                             p_kamar.STATUS as STATUS_KAMAR, p_kamar.BIAYA as BIAYA_KAMAR,
+                             p_jalan.STATUS as STATUS_JALAN, p_jalan.BIAYA as BIAYA_JALAN')
                     ->join('pasien', 'pasien.ID_PASIEN = perawatan.ID_PASIEN')
                     ->join('kamar', 'kamar.ID_KAMAR = perawatan.ID_KAMAR', 'left')
+                    ->join('pembayaran p_kamar', "p_kamar.JENIS_LAYANAN = 'kamar' AND p_kamar.ID_REFERENSI = perawatan.ID_PERAWATAN", 'left')
+                    ->join('pembayaran p_jalan', "p_jalan.JENIS_LAYANAN = 'perawatan' AND p_jalan.ID_REFERENSI = perawatan.ID_PERAWATAN", 'left')
                     ->findAll();
     }
 

@@ -10,16 +10,26 @@ class PengobatanModel extends Model
     protected $primaryKey       = 'ID_PENGOBATAN';
     protected $useAutoIncrement = false;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['ID_PENGOBATAN', 'ID_PERIKSA', 'NAMA_OBAT', 'DOSIS_OBAT', 'HARGA_OBAT'];
+    protected $allowedFields    = ['ID_PENGOBATAN', 'ID_PERIKSA', 'ID_FARMASI', 'NAMA_OBAT', 'DOSIS_OBAT', 'HARGA_OBAT'];
 
     /**
      * Get joined data with Pasien name through Pemeriksaan
      */
     public function getJoinedData()
     {
-        return $this->select('pengobatan.*, pasien.NAMA_PASIEN')
+        return $this->select('pengobatan.*, pasien.NAMA_PASIEN, 
+                             pembayaran.STATUS as STATUS_PEMBAYARAN, pembayaran.BIAYA as BIAYA_PEMBAYARAN, pembayaran.ID_PEMBAYARAN,
+                             (SELECT pd.NO_PENDAFTARAN FROM pendaftaran pd 
+                              WHERE pd.ID_PASIEN = pemeriksaan.ID_PASIEN 
+                              ORDER BY 
+                                (DATE(pd.TANGGAL_DAFTAR) = DATE(pemeriksaan.TGL_PERIKSA) AND pd.ID_DOKTER = pemeriksaan.ID_DOKTER) DESC, 
+                                (DATE(pd.TANGGAL_DAFTAR) = DATE(pemeriksaan.TGL_PERIKSA)) DESC, 
+                                (pd.ID_DOKTER = pemeriksaan.ID_DOKTER) DESC, 
+                                pd.TANGGAL_DAFTAR DESC 
+                              LIMIT 1) AS NO_PENDAFTARAN')
                     ->join('pemeriksaan', 'pemeriksaan.ID_PERIKSA = pengobatan.ID_PERIKSA')
                     ->join('pasien', 'pasien.ID_PASIEN = pemeriksaan.ID_PASIEN')
+                    ->join('pembayaran', "pembayaran.JENIS_LAYANAN = 'farmasi' AND pembayaran.ID_REFERENSI = pengobatan.ID_PENGOBATAN", 'left')
                     ->orderBy('pengobatan.ID_PENGOBATAN', 'DESC')
                     ->findAll();
     }

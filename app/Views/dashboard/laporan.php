@@ -277,6 +277,12 @@
     
     if(parts[0] === 'kamar') {
         pageId = 'page-kamarpage'; // Data kamar page has id page-kamarpage
+    } else if(parts[0] === 'pemeriksaan') {
+        pageId = 'page-rekammedis';
+    } else if(parts[0] === 'perawatan') {
+        pageId = 'page-rawatjalan';
+    } else if(parts[0] === 'administrasi') {
+        pageId = 'page-billing';
     }
     
     let sourcePage = document.getElementById(pageId);
@@ -290,14 +296,64 @@
        sourcePage = altPage;
     }
     
-    const sourceTable = sourcePage.querySelector('.data-table');
-    if(!sourceTable) {
-      alert("Tabel data tidak ditemukan untuk laporan ini.");
-      return;
+    let clonedTable;
+    if (parts[0] === 'perawatan') {
+        const tableJalan = sourcePage.querySelector('#table-rawatjalan');
+        const tableInap = sourcePage.querySelector('#table-rawatinap');
+        
+        if (!tableJalan && !tableInap) {
+            alert("Tabel data perawatan tidak ditemukan.");
+            return;
+        }
+        
+        // Clone tableJalan as the template (they have identical columns)
+        clonedTable = (tableJalan || tableInap).cloneNode(true);
+        const tbody = clonedTable.querySelector('tbody');
+        tbody.innerHTML = '';
+        
+        let hasRows = false;
+        if (tableJalan) {
+            const rowsJalan = tableJalan.querySelectorAll('tbody tr');
+            rowsJalan.forEach(tr => {
+                const tds = tr.querySelectorAll('td');
+                if (!(tds.length === 1 && tds[0].colSpan > 1)) {
+                    tbody.appendChild(tr.cloneNode(true));
+                    hasRows = true;
+                }
+            });
+        }
+        
+        if (tableInap) {
+            const rowsInap = tableInap.querySelectorAll('tbody tr');
+            rowsInap.forEach(tr => {
+                const tds = tr.querySelectorAll('td');
+                if (!(tds.length === 1 && tds[0].colSpan > 1)) {
+                    tbody.appendChild(tr.cloneNode(true));
+                    hasRows = true;
+                }
+            });
+        }
+        
+        if (!hasRows) {
+            // Append one empty/no-data row
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 7; // We will remove Action column later, so this is temporary
+            td.style.textAlign = 'center';
+            td.style.padding = '30px';
+            td.style.color = '#999';
+            td.innerText = 'Belum ada data perawatan';
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+        }
+    } else {
+        const sourceTable = sourcePage.querySelector('.data-table');
+        if(!sourceTable) {
+          alert("Tabel data tidak ditemukan untuk laporan ini.");
+          return;
+        }
+        clonedTable = sourceTable.cloneNode(true);
     }
-    
-    // Clone table
-    const clonedTable = sourceTable.cloneNode(true);
     
     // Find column indexes
     const ths = clonedTable.querySelectorAll('thead th');

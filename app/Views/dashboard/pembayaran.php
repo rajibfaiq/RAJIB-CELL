@@ -1,3 +1,59 @@
+<?php
+// Group registrations by service/action type based on the records passed to the view
+$pendaftaranPemeriksaan = [];
+if (!empty($pemeriksaan)) {
+    foreach ($pemeriksaan as $pm) {
+        if (!empty($pm['NO_PENDAFTARAN']) && !empty($pm['NAMA_PASIEN'])) {
+            $pendaftaranPemeriksaan[$pm['NO_PENDAFTARAN']] = $pm['NAMA_PASIEN'];
+        }
+    }
+}
+
+$pendaftaranRontgen = [];
+if (!empty($rontgen)) {
+    foreach ($rontgen as $rtg) {
+        if (!empty($rtg['NO_PENDAFTARAN']) && !empty($rtg['NAMA_PASIEN'])) {
+            $pendaftaranRontgen[$rtg['NO_PENDAFTARAN']] = $rtg['NAMA_PASIEN'];
+        }
+    }
+}
+
+$pendaftaranFarmasi = [];
+if (!empty($pengobatan)) {
+    foreach ($pengobatan as $rx) {
+        if (!empty($rx['NO_PENDAFTARAN']) && !empty($rx['NAMA_PASIEN'])) {
+            $pendaftaranFarmasi[$rx['NO_PENDAFTARAN']] = $rx['NAMA_PASIEN'];
+        }
+    }
+}
+
+$pendaftaranLaboratorium = [];
+if (!empty($laboratorium)) {
+    foreach ($laboratorium as $lab) {
+        if (!empty($lab['NO_PENDAFTARAN']) && !empty($lab['NAMA_PASIEN'])) {
+            $pendaftaranLaboratorium[$lab['NO_PENDAFTARAN']] = $lab['NAMA_PASIEN'];
+        }
+    }
+}
+
+$pendaftaranKamar = [];
+if (!empty($perawatan)) {
+    foreach ($perawatan as $pw) {
+        if (!empty($pw['RAWAT_INAP']) && !empty($pw['NO_PENDAFTARAN']) && !empty($pw['NAMA_PASIEN'])) {
+            $pendaftaranKamar[$pw['NO_PENDAFTARAN']] = $pw['NAMA_PASIEN'];
+        }
+    }
+}
+
+$allPendaftaran = [];
+if (!empty($pendaftaran)) {
+    foreach ($pendaftaran as $pd) {
+        if (!empty($pd['NO_PENDAFTARAN']) && !empty($pd['NAMA_PASIEN'])) {
+            $allPendaftaran[$pd['NO_PENDAFTARAN']] = $pd['NAMA_PASIEN'];
+        }
+    }
+}
+?>
 <!-- Pembayaran Baru (Billing Per Layanan) -->
 <div class="page-section" id="page-pembayaran" style="display:none;">
   
@@ -19,7 +75,7 @@
           </div>
         </div>
         <div style="width: auto;">
-          <button class="btn btn-primary" data-modal="modal-tambah-tagihan" style="padding: 11px 20px; font-weight:700;"><i class="fas fa-plus-circle"></i> Tambah Tagihan Manual</button>
+          <button class="btn btn-primary" data-modal="modal-tambah-tagihan" onclick="setTimeout(filterPendaftaranByLayanan, 50)" style="padding: 11px 20px; font-weight:700;"><i class="fas fa-plus-circle"></i> Tambah Tagihan Manual</button>
         </div>
       </div>
     </div>
@@ -123,7 +179,7 @@
         <div class="form-row">
           <div><label class="form-label">ID Tagihan</label><input name="id_pembayaran" class="form-control" value="<?= $nextPembayaranId ?>" readonly required></div>
           <div><label class="form-label">Nomor Pendaftaran Pasien</label>
-            <select name="no_pendaftaran" class="form-control" required>
+            <select name="no_pendaftaran" id="input-tagihan-no-pendaftaran" class="form-control" required>
               <option value="">-- Pilih Pendaftaran Pasien --</option>
               <?php 
                 // Display pendaftaran
@@ -138,13 +194,13 @@
         <div class="form-row">
           <div>
             <label class="form-label">Jenis Layanan / Tindakan</label>
-            <select name="jenis_layanan" class="form-control" required>
+            <select name="jenis_layanan" id="input-tagihan-jenis-layanan" class="form-control" onchange="filterPendaftaranByLayanan()" required>
               <option value="pemeriksaan">Pemeriksaan Dokter</option>
               <option value="rontgen">Rontgen / Radiologi</option>
               <option value="farmasi">Obat / Farmasi</option>
               <option value="laboratorium">Laboratorium</option>
               <option value="kamar">Kamar / Rawat Inap</option>
-              <option value="administrasi">Lain-lain</option>
+              <option value="administrasi">Administrasi / Lain-lain</option>
             </select>
           </div>
           <div><label class="form-label">Jumlah Biaya (Rp)</label><input type="number" name="biaya" class="form-control" placeholder="Biaya layanan" required min="0"></div>
@@ -193,7 +249,9 @@
             <label class="form-label" style="font-weight:700; color:#2c3e50;">Metode Pembayaran</label>
             <select name="jenis_pembayaran" class="form-control" style="padding:10px; font-size:13px;" required>
               <option value="Tunai">Tunai</option>
-              <option value="Debit Mandiri">Debit Mandiri</option>
+              <option value="BPJS">BPJS</option>
+              <option value="Asuransi">Asuransi</option>
+              <option value="Debit Mandiri">Debit Mandiri</op tion>
               <option value="Debit BCA">Debit BCA</option>
               <option value="QRIS">QRIS (Gopay/OVO/ShopeePay)</option>
               <option value="Transfer Bank">Transfer Bank</option>
@@ -343,5 +401,46 @@ function resetBillingView() {
 function cetakKuitansiBilling(idPembayaran) {
   // We can open a print-friendly window or a dedicated route
   window.open('<?= site_url("pembayaran/kuitansi") ?>/' + idPembayaran, '_blank', 'width=800,height=600');
+}
+
+// Group maps for service-specific pendaftaran selection
+const serviceRegistrations = {
+  pemeriksaan: <?= json_encode($pendaftaranPemeriksaan) ?>,
+  rontgen: <?= json_encode($pendaftaranRontgen) ?>,
+  farmasi: <?= json_encode($pendaftaranFarmasi) ?>,
+  laboratorium: <?= json_encode($pendaftaranLaboratorium) ?>,
+  kamar: <?= json_encode($pendaftaranKamar) ?>,
+  administrasi: <?= json_encode($allPendaftaran) ?>
+};
+const allRegistrations = <?= json_encode($allPendaftaran) ?>;
+
+function filterPendaftaranByLayanan() {
+  const serviceSelect = document.getElementById('input-tagihan-jenis-layanan');
+  const regSelect = document.getElementById('input-tagihan-no-pendaftaran');
+  if (!serviceSelect || !regSelect) return;
+  
+  const selectedService = serviceSelect.value;
+  const validRegs = serviceRegistrations[selectedService] || allRegistrations;
+  
+  // Save current value
+  const currentValue = regSelect.value;
+  
+  // Clear options except the placeholder
+  regSelect.innerHTML = '<option value="">-- Pilih Pendaftaran Pasien --</option>';
+  
+  // Add filtered options
+  for (const [noReg, namaPasien] of Object.entries(validRegs)) {
+    const opt = document.createElement('option');
+    opt.value = noReg;
+    opt.textContent = `${noReg} - ${namaPasien}`;
+    regSelect.appendChild(opt);
+  }
+  
+  // Restore current value if it is still in the new list, otherwise select empty
+  if (validRegs[currentValue]) {
+    regSelect.value = currentValue;
+  } else {
+    regSelect.value = '';
+  }
 }
 </script>

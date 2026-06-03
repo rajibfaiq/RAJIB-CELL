@@ -22,10 +22,12 @@ class PendaftaranModel extends Model
      */
     public function getJoinedData()
     {
-        return $this->select('pendaftaran.*, pasien.NAMA_PASIEN, dokter.NAMA_DOKTER, poli.NAMA_POLI')
+        return $this->select('pendaftaran.*, pasien.NAMA_PASIEN, pasien.JENIS_PEMBAYARAN, dokter.NAMA_DOKTER, poli.NAMA_POLI,
+                             pembayaran.STATUS as STATUS_PEMBAYARAN, pembayaran.BIAYA as BIAYA_PEMBAYARAN, pembayaran.ID_PEMBAYARAN')
                     ->join('pasien', 'pasien.ID_PASIEN = pendaftaran.ID_PASIEN')
                     ->join('dokter', 'dokter.ID_DOKTER = pendaftaran.ID_DOKTER', 'left')
                     ->join('poli', 'poli.ID_POLI = pendaftaran.ID_POLI', 'left')
+                    ->join('pembayaran', "pembayaran.JENIS_LAYANAN = 'pendaftaran' AND pembayaran.ID_REFERENSI = pendaftaran.NO_PENDAFTARAN", 'left')
                     ->orderBy('pendaftaran.TANGGAL_KUNJUNGAN', 'DESC')
                     ->orderBy('pendaftaran.NO_ANTRIAN', 'ASC')
                     ->findAll();

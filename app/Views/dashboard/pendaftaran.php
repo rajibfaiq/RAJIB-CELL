@@ -29,6 +29,8 @@
             <th>Tgl & Sesi Kunjungan</th>
             <th>No. Antrian</th>
             <th>Status</th>
+            <th>Biaya</th>
+            <th>Pembayaran</th>
             <th>Aksi</th>
           </tr>
         </thead>
@@ -75,8 +77,43 @@
                 <?= str_replace('_', ' ', $pn['STATUS_ANTRIAN']) ?>
               </span>
             </td>
+            <td>Rp <?= number_format($pn['BIAYA_PEMBAYARAN'] ?? (($pn['JENIS_PEMBAYARAN'] === 'BPJS' || $pn['JENIS_PEMBAYARAN'] === 'Asuransi') ? 0 : 25000), 0, ',', '.') ?></td>
             <td>
-              <div style="display: flex; gap: 8px;">
+              <?php if (empty($pn['BIAYA_PEMBAYARAN']) && (isset($pn['JENIS_PEMBAYARAN']) && ($pn['JENIS_PEMBAYARAN'] === 'BPJS' || $pn['JENIS_PEMBAYARAN'] === 'Asuransi'))): ?>
+                <span class="badge-status active" style="text-transform: uppercase; font-size: 10px; font-weight: 700;">
+                  Tercover (<?= $pn['JENIS_PEMBAYARAN'] ?>)
+                </span>
+              <?php else: ?>
+                <?php
+                  $isLunas = isset($pn['STATUS_PEMBAYARAN']) && $pn['STATUS_PEMBAYARAN'] === 'lunas';
+                  $payStatusClass = $isLunas ? 'active' : 'pending';
+                  $payStatusLabel = $isLunas ? 'Lunas' : 'Belum Bayar';
+                ?>
+                <span class="badge-status <?= $payStatusClass ?>" style="text-transform: uppercase; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">
+                  <?= $payStatusLabel ?>
+                </span>
+              <?php endif; ?>
+            </td>
+            <td>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <?php if (!$isPatient): ?>
+                  <?php 
+                    $isLunas = isset($pn['STATUS_PEMBAYARAN']) && $pn['STATUS_PEMBAYARAN'] === 'lunas';
+                    $isFree = (empty($pn['BIAYA_PEMBAYARAN']) && (isset($pn['JENIS_PEMBAYARAN']) && ($pn['JENIS_PEMBAYARAN'] === 'BPJS' || $pn['JENIS_PEMBAYARAN'] === 'Asuransi')));
+                  ?>
+                  <?php if (!$isFree): ?>
+                    <?php if (!$isLunas): ?>
+                      <button class="btn btn-success btn-sm" onclick="goToBillingFromPendaftaran('<?= $pn['NO_PENDAFTARAN'] ?>')" title="Bayar di Kasir" style="padding: 4px 12px; font-size: 11px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-cash-register"></i> Bayar
+                      </button>
+                    <?php else: ?>
+                      <button class="btn btn-outline btn-sm" onclick="goToBillingFromPendaftaran('<?= $pn['NO_PENDAFTARAN'] ?>')" title="Lihat Kuitansi" style="padding: 4px 12px; font-size: 11px; border-radius: 4px; color: #4a7dc7; border-color: #4a7dc7; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-print"></i> Kuitansi
+                      </button>
+                    <?php endif; ?>
+                  <?php endif; ?>
+                <?php endif; ?>
+
                 <a href="<?= site_url('pendaftaran/cetak/'.$pn['NO_PENDAFTARAN']) ?>" target="_blank" class="btn-icon" style="background:#e8f0fe; color:#4a7dc7;" title="Cetak Tiket Antrian"><i class="fas fa-print"></i></a>
                 
                 <?php if (!$isPatient): ?>
@@ -90,7 +127,7 @@
             </td>
           </tr>
           <?php endforeach; else: ?>
-          <tr><td colspan="8" style="text-align:center;padding:30px;color:#999;">Belum ada data pendaftaran</td></tr>
+          <tr><td colspan="10" style="text-align:center;padding:30px;color:#999;">Belum ada data pendaftaran</td></tr>
           <?php endif; ?>
         </tbody>
       </table>

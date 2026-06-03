@@ -15,6 +15,8 @@
             <th>Dokter Perujuk</th>
             <th>Detail Rujukan</th>
             <th>Status</th>
+            <th>Biaya</th>
+            <th>Pembayaran</th>
             <th>Hasil Rontgen</th>
             <th>Kesimpulan / Catatan</th>
             <th>Aksi</th>
@@ -30,8 +32,14 @@
           <tr>
             <td><span class="badge-status info" style="font-family: monospace; font-size: 11px; font-weight: bold;"><?= $r['ID_RONTGEN'] ?></span></td>
             <td>
-              <strong><?= $r['NAMA_PASIEN'] ?></strong>
-              <br><span style="font-family: monospace; font-size: 11px; color:#888;">RM: <?= $r['ID_PERIKSA'] ?></span>
+              <?php if (!empty($r['NO_PENDAFTARAN'])): ?>
+                <a href="javascript:void(0)" onclick="goToBillingFromPendaftaran('<?= $r['NO_PENDAFTARAN'] ?>')" style="color: #4a7dc7; font-weight: bold; text-decoration: underline; cursor: pointer;" title="Klik untuk memproses/lihat rincian tagihan billing pasien">
+                  <?= esc($r['NAMA_PASIEN']) ?>
+                </a>
+              <?php else: ?>
+                <strong><?= esc($r['NAMA_PASIEN']) ?></strong>
+              <?php endif; ?>
+              <br><span style="font-family: monospace; font-size: 11px; color:#888;">RM: <?= esc($r['ID_PERIKSA']) ?></span>
             </td>
             <td><strong><?= $r['NAMA_DOKTER'] ?: '-' ?></strong></td>
             <td>
@@ -43,6 +51,17 @@
             <td>
               <span class="badge-status <?= $statusClass ?>" style="text-transform: capitalize; font-weight: 600;">
                 <?= $r['STATUS'] ?>
+              </span>
+            </td>
+            <td>Rp <?= number_format($r['BIAYA_PEMBAYARAN'] ?? 150000, 0, ',', '.') ?></td>
+            <td>
+              <?php
+                $isLunas = isset($r['STATUS_PEMBAYARAN']) && $r['STATUS_PEMBAYARAN'] === 'lunas';
+                $payStatusClass = $isLunas ? 'active' : 'pending';
+                $payStatusLabel = $isLunas ? 'Lunas' : 'Belum Bayar';
+              ?>
+              <span class="badge-status <?= $payStatusClass ?>" style="text-transform: uppercase; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">
+                <?= $payStatusLabel ?>
               </span>
             </td>
             <td>
@@ -61,15 +80,25 @@
             </td>
             <td>
               <div style="display: flex; gap: 8px; align-items: center;">
-                <?php if($r['STATUS'] !== 'selesai'): ?>
-                  <button class="btn btn-success btn-sm" onclick="openIsiHasilRontgenModal('<?= $r['ID_RONTGEN'] ?>', '<?= addslashes($r['NAMA_PASIEN']) ?>', '<?= $r['JENIS_RONTGEN'] ?>')" style="padding: 4px 10px; font-size: 11px; border-radius: 4px;"><i class="fas fa-edit"></i> Isi Hasil</button>
+                <?php if(!$isLunas && !empty($r['NO_PENDAFTARAN'])): ?>
+                  <button class="btn btn-success btn-sm" onclick="goToBillingFromPendaftaran('<?= $r['NO_PENDAFTARAN'] ?>')" title="Bayar di Kasir" style="padding: 4px 12px; font-size: 11px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fas fa-cash-register"></i> Bayar
+                  </button>
+                <?php elseif($isLunas && !empty($r['NO_PENDAFTARAN'])): ?>
+                  <button class="btn btn-outline btn-sm" onclick="goToBillingFromPendaftaran('<?= $r['NO_PENDAFTARAN'] ?>')" title="Lihat Kuitansi" style="padding: 4px 12px; font-size: 11px; border-radius: 4px; color: #4a7dc7; border-color: #4a7dc7; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fas fa-print"></i> Kuitansi
+                  </button>
                 <?php endif; ?>
+                <?php if($r['STATUS'] !== 'selesai'): ?>
+                  <button class="btn btn-success btn-sm" onclick="openIsiHasilRontgenModal('<?= $r['ID_RONTGEN'] ?>', '<?= addslashes($r['NAMA_PASIEN']) ?>', '<?= $r['JENIS_RONTGEN'] ?>')" style="padding: 4px 10px; font-size: 11px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-edit"></i> Hasil</button>
+                <?php endif; ?>
+                <button class="btn-icon edit" onclick='openEditRontgenModal(<?= htmlspecialchars(json_encode($r), ENT_QUOTES, "UTF-8") ?>)' title="Edit Rontgen"><i class="fas fa-edit"></i></button>
                 <a href="<?= site_url('rontgen/delete/'.$r['ID_RONTGEN']) ?>" class="btn-icon delete" onclick="return confirm('Hapus rujukan rontgen ini?')"><i class="fas fa-trash"></i></a>
               </div>
             </td>
           </tr>
           <?php endforeach; else: ?>
-          <tr><td colspan="8" style="text-align:center;padding:30px;color:#999;">Belum ada data rontgen</td></tr>
+          <tr><td colspan="12" style="text-align:center;padding:30px;color:#999;">Belum ada data rontgen</td></tr>
           <?php endif; ?>
         </tbody>
       </table>
@@ -183,5 +212,32 @@ function openIsiHasilRontgenModal(idRontgen, namaPasien, jenisRontgen) {
   if (modal) {
     modal.classList.add('show');
   }
+}
+
+function openEditRontgenModal(data) {
+  const modal = document.getElementById('modal-rontgen');
+  if (!modal) return;
+  
+  const title = modal.querySelector('.modal-header h3');
+  if (title) title.innerText = 'Edit Rontgen';
+  
+  const form = modal.querySelector('form');
+  modal.querySelector('[name="id_rontgen"]').value = data.ID_RONTGEN;
+  modal.querySelector('[name="id_periksa"]').value = data.ID_PERIKSA;
+  modal.querySelector('[name="jenis_rontgen"]').value = data.JENIS_RONTGEN || 'Thorax (Dada)';
+  modal.querySelector('[name="keterangan_klinis"]').value = data.KETERANGAN_KLINIS || '';
+  modal.querySelector('[name="hasil_rontgen"]').value = data.HASIL_RONTGEN || '';
+  modal.querySelector('[name="keterangan"]').value = data.KETERANGAN || '';
+  
+  let isEditInput = form.querySelector('[name="is_edit"]');
+  if (!isEditInput) {
+      isEditInput = document.createElement('input');
+      isEditInput.type = 'hidden';
+      isEditInput.name = 'is_edit';
+      form.appendChild(isEditInput);
+  }
+  isEditInput.value = '1';
+  
+  modal.classList.add('show');
 }
 </script>

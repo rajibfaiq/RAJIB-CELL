@@ -14,8 +14,22 @@
             <td><?= $k['ID_KAMAR'] ?></td>
             <td><?= $k['NOMOR_KAMAR'] ?></td>
             <td><?= $k['TIPE_KAMAR'] ?></td>
-            <td><span class="badge badge-success"><?= $k['STATUS'] ?></span></td>
-             <td><?= !empty($k['NAMA_PASIEN']) ? '<strong>'.$k['NAMA_PASIEN'].'</strong> <br><small style="color:#888;">'.$k['ID_PERIKSA'].'</small>' : (!empty($k['ID_PERIKSA']) ? '<span style="color:#aaa;">-</span> <br><small style="color:#888;">'.$k['ID_PERIKSA'].'</small>' : '<span style="color:#aaa;">-</span>') ?></td>
+            <td>
+              <?php if (strtolower($k['STATUS']) == 'terisi'): ?>
+                <span class="badge badge-danger" style="background-color: #dc3545; color: white;"><?= htmlspecialchars($k['STATUS']) ?></span>
+              <?php else: ?>
+                <span class="badge badge-success" style="background-color: #28a745; color: white;"><?= htmlspecialchars($k['STATUS']) ?></span>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if (!empty($k['NAMA_PASIEN'])): ?>
+                <strong><?= htmlspecialchars($k['NAMA_PASIEN']) ?></strong> <br><small style="color:#888;"><?= htmlspecialchars($k['ID_PERIKSA']) ?></small>
+              <?php elseif (!empty($k['NAMA_PASIEN_PERAWATAN'])): ?>
+                <strong><?= htmlspecialchars($k['NAMA_PASIEN_PERAWATAN']) ?></strong> <br><small style="color:#e67e22; font-weight: bold;"><i class="fas fa-bed"></i> Perawatan</small>
+              <?php else: ?>
+                <span style="color:#aaa;">-</span>
+              <?php endif; ?>
+            </td>
              <td>
               <button class="btn-icon" onclick='editData("kamar", <?= htmlspecialchars(json_encode($k), ENT_QUOTES, "UTF-8") ?>)'><i class="fas fa-edit"></i></button>
               <a href="<?= site_url('kamar/delete/'.$k['ID_KAMAR']) ?>" class="btn-icon delete" onclick="return confirm('Hapus?')"><i class="fas fa-trash"></i></a>

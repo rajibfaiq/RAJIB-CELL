@@ -16,6 +16,7 @@
             <td><?= $l['JENIS_PEMERIKSAAN'] ?></td>
             <td><?= $l['HASIL_LAB'] ?></td>
             <td>
+              <button class="btn-icon edit" onclick='openEditLaboratoriumModal(<?= htmlspecialchars(json_encode($l), ENT_QUOTES, "UTF-8") ?>)' title="Edit Data Lab" style="margin-right: 5px;"><i class="fas fa-edit"></i></button>
               <a href="<?= site_url('laboratorium/delete/'.$l['ID_LABORATORIUM']) ?>" class="btn-icon delete" onclick="return confirm('Hapus data?')"><i class="fas fa-trash"></i></a>
             </td>
           </tr>
@@ -32,6 +33,7 @@
 <div class="modal-overlay" id="modal-laboratorium">
   <div class="modal">
     <form action="<?= site_url('laboratorium/save') ?>" method="post">
+      <input type="hidden" name="is_edit" value="0">
       <div class="modal-header">
         <h3>Tambah Data Lab</h3>
         <button type="button" class="modal-close"><i class="fas fa-times"></i></button>
@@ -53,3 +55,30 @@
     </form>
   </div>
 </div>
+
+<script>
+function openEditLaboratoriumModal(data) {
+  const modal = document.getElementById('modal-laboratorium');
+  if (!modal) return;
+  
+  const title = modal.querySelector('.modal-header h3');
+  if (title) title.innerText = 'Edit Data Lab';
+  
+  const form = modal.querySelector('form');
+  modal.querySelector('[name="id_lab"]').value = data.ID_LABORATORIUM;
+  modal.querySelector('[name="id_periksa"]').value = data.ID_PERIKSA;
+  modal.querySelector('[name="jenis_periksa"]').value = data.JENIS_PEMERIKSAAN;
+  modal.querySelector('[name="hasil_lab"]').value = data.HASIL_LAB;
+  
+  let isEditInput = form.querySelector('[name="is_edit"]');
+  if (!isEditInput) {
+      isEditInput = document.createElement('input');
+      isEditInput.type = 'hidden';
+      isEditInput.name = 'is_edit';
+      form.appendChild(isEditInput);
+  }
+  isEditInput.value = '1';
+  
+  modal.classList.add('show');
+}
+</script>

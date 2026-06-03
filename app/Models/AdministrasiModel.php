@@ -17,9 +17,10 @@ class AdministrasiModel extends Model
      */
     public function getJoinedData()
     {
-        return $this->select('administrasi.*, pasien.NAMA_PASIEN')
+        return $this->select('administrasi.*, pasien.NAMA_PASIEN, pembayaran.STATUS as STATUS_PEMBAYARAN, pembayaran.ID_PEMBAYARAN')
                     ->join('pendaftaran', 'pendaftaran.NO_PENDAFTARAN = administrasi.NO_PENDAFTARAN')
                     ->join('pasien', 'pasien.ID_PASIEN = pendaftaran.ID_PASIEN')
+                    ->join('pembayaran', "pembayaran.JENIS_LAYANAN = 'administrasi' AND pembayaran.ID_REFERENSI = administrasi.ID_ADMINISTRASI", 'left')
                     ->findAll();
     }
 

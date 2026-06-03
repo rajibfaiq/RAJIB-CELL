@@ -20,10 +20,20 @@ class RontgenModel extends Model
      */
     public function getJoinedData()
     {
-        return $this->select('rontgen.*, pasien.NAMA_PASIEN, dokter.NAMA_DOKTER')
+        return $this->select('rontgen.*, pasien.NAMA_PASIEN, dokter.NAMA_DOKTER, 
+                             pembayaran.STATUS as STATUS_PEMBAYARAN, pembayaran.BIAYA as BIAYA_PEMBAYARAN, pembayaran.ID_PEMBAYARAN,
+                             (SELECT pd.NO_PENDAFTARAN FROM pendaftaran pd 
+                              WHERE pd.ID_PASIEN = pemeriksaan.ID_PASIEN 
+                              ORDER BY 
+                                (DATE(pd.TANGGAL_DAFTAR) = DATE(pemeriksaan.TGL_PERIKSA) AND pd.ID_DOKTER = pemeriksaan.ID_DOKTER) DESC, 
+                                (DATE(pd.TANGGAL_DAFTAR) = DATE(pemeriksaan.TGL_PERIKSA)) DESC, 
+                                (pd.ID_DOKTER = pemeriksaan.ID_DOKTER) DESC, 
+                                pd.TANGGAL_DAFTAR DESC 
+                              LIMIT 1) AS NO_PENDAFTARAN')
                     ->join('pemeriksaan', 'pemeriksaan.ID_PERIKSA = rontgen.ID_PERIKSA')
                     ->join('pasien', 'pasien.ID_PASIEN = pemeriksaan.ID_PASIEN')
                     ->join('dokter', 'dokter.ID_DOKTER = pemeriksaan.ID_DOKTER', 'left')
+                    ->join('pembayaran', "pembayaran.JENIS_LAYANAN = 'rontgen' AND pembayaran.ID_REFERENSI = rontgen.ID_RONTGEN", 'left')
                     ->orderBy('rontgen.TGL_PERMINTAAN', 'DESC')
                     ->findAll();
     }
@@ -33,7 +43,15 @@ class RontgenModel extends Model
      */
     public function getPermintaanBaru()
     {
-        return $this->select('rontgen.*, pasien.NAMA_PASIEN, dokter.NAMA_DOKTER')
+        return $this->select('rontgen.*, pasien.NAMA_PASIEN, dokter.NAMA_DOKTER, 
+                             (SELECT pd.NO_PENDAFTARAN FROM pendaftaran pd 
+                              WHERE pd.ID_PASIEN = pemeriksaan.ID_PASIEN 
+                              ORDER BY 
+                                (DATE(pd.TANGGAL_DAFTAR) = DATE(pemeriksaan.TGL_PERIKSA) AND pd.ID_DOKTER = pemeriksaan.ID_DOKTER) DESC, 
+                                (DATE(pd.TANGGAL_DAFTAR) = DATE(pemeriksaan.TGL_PERIKSA)) DESC, 
+                                (pd.ID_DOKTER = pemeriksaan.ID_DOKTER) DESC, 
+                                pd.TANGGAL_DAFTAR DESC 
+                              LIMIT 1) AS NO_PENDAFTARAN')
                     ->join('pemeriksaan', 'pemeriksaan.ID_PERIKSA = rontgen.ID_PERIKSA')
                     ->join('pasien', 'pasien.ID_PASIEN = pemeriksaan.ID_PASIEN')
                     ->join('dokter', 'dokter.ID_DOKTER = pemeriksaan.ID_DOKTER', 'left')

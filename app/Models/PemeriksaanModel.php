@@ -17,10 +17,19 @@ class PemeriksaanModel extends Model
      */
     public function getJoinedData()
     {
-        return $this->select('pemeriksaan.*, pasien.NAMA_PASIEN, dokter.NAMA_DOKTER, pendaftaran.NO_PENDAFTARAN')
+        return $this->select('pemeriksaan.*, pasien.NAMA_PASIEN, dokter.NAMA_DOKTER, 
+                             pembayaran.STATUS as STATUS_PEMBAYARAN, pembayaran.BIAYA as BIAYA_PEMBAYARAN, pembayaran.ID_PEMBAYARAN,
+                             (SELECT pd.NO_PENDAFTARAN FROM pendaftaran pd 
+                              WHERE pd.ID_PASIEN = pemeriksaan.ID_PASIEN 
+                              ORDER BY 
+                                (DATE(pd.TANGGAL_DAFTAR) = DATE(pemeriksaan.TGL_PERIKSA) AND pd.ID_DOKTER = pemeriksaan.ID_DOKTER) DESC, 
+                                (DATE(pd.TANGGAL_DAFTAR) = DATE(pemeriksaan.TGL_PERIKSA)) DESC, 
+                                (pd.ID_DOKTER = pemeriksaan.ID_DOKTER) DESC, 
+                                pd.TANGGAL_DAFTAR DESC 
+                              LIMIT 1) AS NO_PENDAFTARAN')
                     ->join('pasien', 'pasien.ID_PASIEN = pemeriksaan.ID_PASIEN')
                     ->join('dokter', 'dokter.ID_DOKTER = pemeriksaan.ID_DOKTER')
-                    ->join('pendaftaran', 'pendaftaran.ID_PASIEN = pemeriksaan.ID_PASIEN AND pendaftaran.ID_DOKTER = pemeriksaan.ID_DOKTER AND DATE(pendaftaran.TANGGAL_DAFTAR) = DATE(pemeriksaan.TGL_PERIKSA)', 'left')
+                    ->join('pembayaran', "pembayaran.JENIS_LAYANAN = 'pemeriksaan' AND pembayaran.ID_REFERENSI = pemeriksaan.ID_PERIKSA", 'left')
                     ->findAll();
     }
 

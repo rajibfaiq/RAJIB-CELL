@@ -10,16 +10,14 @@ class FarmasiModel extends Model
     protected $primaryKey       = 'ID_FARMASI';
     protected $useAutoIncrement = false;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['ID_FARMASI', 'ID_PENGOBATAN', 'JENIS_OBAT', 'HARGA_OBAT'];
+    protected $allowedFields    = ['ID_FARMASI', 'NAMA_OBAT', 'ID_PENGOBATAN', 'JENIS_OBAT', 'HARGA_OBAT'];
 
     /**
-     * Get joined data with drug name through optional Pengobatan
+     * Get joined data with drug name
      */
     public function getJoinedData()
     {
-        return $this->select('farmasi.*, pengobatan.NAMA_OBAT')
-                    ->join('pengobatan', 'pengobatan.ID_PENGOBATAN = farmasi.ID_PENGOBATAN', 'left')
-                    ->findAll();
+        return $this->orderBy('ID_FARMASI', 'ASC')->findAll();
     }
 
     /**

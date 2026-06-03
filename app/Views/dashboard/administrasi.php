@@ -7,16 +7,38 @@
   <div class="card">
     <div class="card-body no-pad">
       <table class="data-table">
-        <thead><tr><th>ID Admin</th><th>Nama Pasien</th><th>Biaya</th><th>Jenis Pembayaran</th><th>Aksi</th></tr></thead>
+        <thead><tr><th>ID Admin</th><th>Nama Pasien</th><th>Biaya</th><th>Jenis Pembayaran</th><th>Status</th><th>Aksi</th></tr></thead>
         <tbody>
           <?php if(!empty($administrasi)): foreach($administrasi as $a): ?>
+          <?php
+            $isLunas = isset($a['STATUS_PEMBAYARAN']) && $a['STATUS_PEMBAYARAN'] === 'lunas';
+            $statusClass = $isLunas ? 'active' : 'pending';
+            $statusLabel = $isLunas ? 'Lunas' : 'Belum Bayar';
+          ?>
           <tr>
             <td><?= $a['ID_ADMINISTRASI'] ?></td>
             <td><strong><?= $a['NAMA_PASIEN'] ?></strong> <br><small style="color:#888;"><?= $a['NO_PENDAFTARAN'] ?></small></td>
             <td>Rp <?= number_format($a['BIAYA'], 0, ',', '.') ?></td>
             <td><?= $a['JENIS_PEMBAYARAN'] ?></td>
             <td>
-              <a href="<?= site_url('administrasi/delete/'.$a['ID_ADMINISTRASI']) ?>" class="btn-icon delete" onclick="return confirm('Hapus data billing?')"><i class="fas fa-trash"></i></a>
+              <span class="badge-status <?= $statusClass ?>" style="text-transform: uppercase; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">
+                <?= $statusLabel ?>
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; gap: 5px; align-items: center;">
+                <?php if(!$isLunas): ?>
+                  <button class="btn btn-success btn-sm" onclick="goToBillingFromPendaftaran('<?= $a['NO_PENDAFTARAN'] ?>')" title="Bayar di Kasir" style="padding: 4px 12px; font-size: 11px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fas fa-cash-register"></i> Bayar
+                  </button>
+                  <button class="btn-icon edit" onclick='openEditAdministrasiModal(<?= htmlspecialchars(json_encode($a), ENT_QUOTES, "UTF-8") ?>)' title="Edit Billing"><i class="fas fa-edit"></i></button>
+                <?php else: ?>
+                  <button class="btn btn-outline btn-sm" onclick="goToBillingFromPendaftaran('<?= $a['NO_PENDAFTARAN'] ?>')" title="Lihat Kuitansi" style="padding: 4px 12px; font-size: 11px; border-radius: 4px; color: #4a7dc7; border-color: #4a7dc7; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fas fa-print"></i> Kuitansi
+                  </button>
+                <?php endif; ?>
+                <a href="<?= site_url('administrasi/delete/'.$a['ID_ADMINISTRASI']) ?>" class="btn-icon delete" onclick="return confirm('Hapus data billing?')"><i class="fas fa-trash"></i></a>
+              </div>
             </td>
           </tr>
           <?php endforeach; else: ?>
@@ -32,6 +54,7 @@
 <div class="modal-overlay" id="modal-administrasi">
   <div class="modal">
     <form action="<?= site_url('administrasi/save') ?>" method="post">
+      <input type="hidden" name="is_edit" value="0">
       <div class="modal-header">
         <h3>Tambah Billing Pembayaran</h3>
         <button type="button" class="modal-close"><i class="fas fa-times"></i></button>
@@ -66,3 +89,30 @@
     </form>
   </div>
 </div>
+
+<script>
+function openEditAdministrasiModal(data) {
+  const modal = document.getElementById('modal-administrasi');
+  if (!modal) return;
+  
+  const title = modal.querySelector('.modal-header h3');
+  if (title) title.innerText = 'Edit Billing Pembayaran';
+  
+  const form = modal.querySelector('form');
+  modal.querySelector('[name="id_admin"]').value = data.ID_ADMINISTRASI;
+  modal.querySelector('[name="no_daftar"]').value = data.NO_PENDAFTARAN;
+  modal.querySelector('[name="biaya"]').value = data.BIAYA;
+  modal.querySelector('[name="jenis_bayar"]').value = data.JENIS_PEMBAYARAN;
+  
+  let isEditInput = form.querySelector('[name="is_edit"]');
+  if (!isEditInput) {
+      isEditInput = document.createElement('input');
+      isEditInput.type = 'hidden';
+      isEditInput.name = 'is_edit';
+      form.appendChild(isEditInput);
+  }
+  isEditInput.value = '1';
+  
+  modal.classList.add('show');
+}
+</script>

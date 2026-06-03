@@ -74,7 +74,12 @@ class DokterModel extends Model
      */
     public function getWithPoli()
     {
-        return $this->select('dokter.*, poli.NAMA_POLI')
+        $today = date('Y-m-d');
+        return $this->select("dokter.*, poli.NAMA_POLI, 
+                             (SELECT COUNT(*) FROM pendaftaran pd 
+                              WHERE pd.ID_DOKTER = dokter.ID_DOKTER 
+                                AND pd.TANGGAL_KUNJUNGAN = '{$today}'
+                                AND pd.STATUS_ANTRIAN != 'batal') AS TERDAFTAR_HARI_INI")
                     ->join('poli', 'poli.ID_POLI = dokter.ID_POLI', 'left')
                     ->findAll();
     }

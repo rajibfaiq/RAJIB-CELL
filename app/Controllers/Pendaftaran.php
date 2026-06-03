@@ -347,6 +347,9 @@ class Pendaftaran extends BaseController
     {
         $model = new PendaftaranModel();
         try {
+            $pembayaranModel = new \App\Models\PembayaranModel();
+            $pembayaranModel->where('NO_PENDAFTARAN', $id)->delete();
+
             $model->delete($id);
             return redirect()->to('/dashboard?page=pendaftaran')->with('success', 'Data Pendaftaran berhasil dihapus');
         } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {

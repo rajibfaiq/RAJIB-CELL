@@ -17,7 +17,15 @@ class LaboratoriumModel extends Model
      */
     public function getJoinedData()
     {
-        return $this->select('laboratorium.*, pasien.NAMA_PASIEN')
+        return $this->select('laboratorium.*, pasien.NAMA_PASIEN, 
+                             (SELECT pd.NO_PENDAFTARAN FROM pendaftaran pd 
+                              WHERE pd.ID_PASIEN = pemeriksaan.ID_PASIEN 
+                              ORDER BY 
+                                (DATE(pd.TANGGAL_DAFTAR) = DATE(pemeriksaan.TGL_PERIKSA) AND pd.ID_DOKTER = pemeriksaan.ID_DOKTER) DESC, 
+                                (DATE(pd.TANGGAL_DAFTAR) = DATE(pemeriksaan.TGL_PERIKSA)) DESC, 
+                                (pd.ID_DOKTER = pemeriksaan.ID_DOKTER) DESC, 
+                                pd.TANGGAL_DAFTAR DESC 
+                              LIMIT 1) AS NO_PENDAFTARAN')
                     ->join('pemeriksaan', 'pemeriksaan.ID_PERIKSA = laboratorium.ID_PERIKSA')
                     ->join('pasien', 'pasien.ID_PASIEN = pemeriksaan.ID_PASIEN')
                     ->findAll();

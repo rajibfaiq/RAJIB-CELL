@@ -211,19 +211,50 @@ class Pembayaran extends BaseController
         // === STEP 1: AUTO-SYNC BILLING FROM ALL CLINICAL TRANSACTIONS ===
         $pendaftaranModel = new \App\Models\PendaftaranModel();
         $pendaftaran = $pendaftaranModel->find($noPendaftaran);
-
         if ($pendaftaran) {
-            $idPasien  = $pendaftaran['ID_PASIEN'];
-            $idDokter  = $pendaftaran['ID_DOKTER'];
-            $tglDaftar = date('Y-m-d', strtotime($pendaftaran['TANGGAL_DAFTAR']));
+            $idPasien       = $pendaftaran['ID_PASIEN'];
+            $idDokter       = $pendaftaran['ID_DOKTER'];
+            $db = \Config\Database::connect();
+
+            // 0. Pendaftaran / Registration Fee
+            $pasienModel = new \App\Models\PasienModel();
+            $pasienInfo = $pasienModel->find($idPasien);
+            $jenisPembayaran = $pasienInfo ? ($pasienInfo['JENIS_PEMBAYARAN'] ?? 'Umum') : 'Umum';
+            $pendaftaranFee = ($jenisPembayaran === 'BPJS' || $jenisPembayaran === 'Asuransi') ? 0 : 25000;
+            
+            $existsReg = $model->where('NO_PENDAFTARAN', $noPendaftaran)
+                               ->where('JENIS_LAYANAN', 'pendaftaran')
+                               ->countAllResults();
+            if (!$existsReg) {
+                $model->insert([
+                    'ID_PEMBAYARAN'      => $model->generateNextId(),
+                    'NO_PENDAFTARAN'     => $noPendaftaran,
+                    'JENIS_LAYANAN'      => 'pendaftaran',
+                    'ID_REFERENSI'       => $noPendaftaran,
+                    'KETERANGAN_LAYANAN' => 'Biaya pendaftaran pasien (' . $jenisPembayaran . ')',
+                    'BIAYA'              => $pendaftaranFee,
+                    'STATUS'             => $pendaftaranFee > 0 ? 'belum_bayar' : 'lunas',
+                    'CREATED_AT'         => date('Y-m-d H:i:s'),
+                ]);
+            }
 
             // A. Pemeriksaan / Konsultasi Dokter
-            $pemeriksaanModel = new \App\Models\PemeriksaanModel();
-            $periksaList = $pemeriksaanModel
-                ->where('ID_PASIEN', $idPasien)
-                ->where('ID_DOKTER', $idDokter)
-                ->where('DATE(TGL_PERIKSA)', $tglDaftar)
-                ->findAll();
+            // Match using the subquery fallback to resolve which examinations belong to this registration
+            $periksaList = $db->query(
+                "SELECT pm.* FROM pemeriksaan pm
+                 WHERE pm.ID_PASIEN = ?
+                   AND (
+                     SELECT pd.NO_PENDAFTARAN FROM pendaftaran pd
+                     WHERE pd.ID_PASIEN = pm.ID_PASIEN
+                     ORDER BY 
+                       (DATE(pd.TANGGAL_DAFTAR) = DATE(pm.TGL_PERIKSA) AND pd.ID_DOKTER = pm.ID_DOKTER) DESC, 
+                       (DATE(pd.TANGGAL_DAFTAR) = DATE(pm.TGL_PERIKSA)) DESC, 
+                       (pd.ID_DOKTER = pm.ID_DOKTER) DESC, 
+                       pd.TANGGAL_DAFTAR DESC 
+                     LIMIT 1
+                   ) = ?",
+                [$idPasien, $noPendaftaran]
+            )->getResultArray();
 
             foreach ($periksaList as $pm) {
                 // Cek sudah ada belum
@@ -322,18 +353,32 @@ class Pembayaran extends BaseController
                 }
             }
 
-            // E. Kamar / Rawat Inap berdasarkan pasien
-            $perawatanModel = new \App\Models\PerawatanModel();
+            // E. Perawatan (Rawat Jalan & Rawat Inap) berdasarkan pasien & resolved registration
             $kamarModel     = new \App\Models\KamarModel();
-            $perawatans     = $perawatanModel->where('ID_PASIEN', $idPasien)->findAll();
+            // Match perawatan using subquery fallback to resolve which treatments belong to this registration
+            $perawatans = $db->query(
+                "SELECT pw.* FROM perawatan pw
+                 WHERE pw.ID_PASIEN = ?
+                   AND (
+                     SELECT pd.NO_PENDAFTARAN FROM pendaftaran pd
+                     WHERE pd.ID_PASIEN = pw.ID_PASIEN
+                     ORDER BY 
+                       (DATE(pd.TANGGAL_DAFTAR) = DATE(pw.TGL_PERAWATAN)) DESC, 
+                       pd.TANGGAL_DAFTAR DESC 
+                     LIMIT 1
+                   ) = ?",
+                [$idPasien, $noPendaftaran]
+            )->getResultArray();
+
             foreach ($perawatans as $pw) {
+                // Rawat Inap – billed as 'kamar'
                 if (!empty($pw['RAWAT_INAP']) && !empty($pw['ID_KAMAR'])) {
                     $existsKamar = $model->where('NO_PENDAFTARAN', $noPendaftaran)
                                          ->where('JENIS_LAYANAN', 'kamar')
                                          ->where('ID_REFERENSI', $pw['ID_PERAWATAN'])
                                          ->countAllResults();
                     if (!$existsKamar) {
-                        $kamar     = $kamarModel->find($pw['ID_KAMAR']);
+                        $kamar      = $kamarModel->find($pw['ID_KAMAR']);
                         $tarifKamar = 250000; // default
                         $nomorKamar = $kamar['NOMOR_KAMAR'] ?? $pw['ID_KAMAR'];
                         $tipeKamar  = $kamar['TIPE_KAMAR'] ?? 'Standard';
@@ -347,6 +392,59 @@ class Pembayaran extends BaseController
                             'BIAYA'              => $tarifKamar,
                             'STATUS'             => 'belum_bayar',
                             'CREATED_AT'         => date('Y-m-d H:i:s'),
+                        ]);
+                    }
+                }
+
+                // Rawat Jalan – billed as 'perawatan'
+                if (!empty($pw['RAWAT_JALAN'])) {
+                    $existsRawatJalan = $model->where('NO_PENDAFTARAN', $noPendaftaran)
+                                              ->where('JENIS_LAYANAN', 'perawatan')
+                                              ->where('ID_REFERENSI', $pw['ID_PERAWATAN'])
+                                              ->countAllResults();
+                    if (!$existsRawatJalan) {
+                        $model->insert([
+                            'ID_PEMBAYARAN'      => $model->generateNextId(),
+                            'NO_PENDAFTARAN'     => $noPendaftaran,
+                            'JENIS_LAYANAN'      => 'perawatan',
+                            'ID_REFERENSI'       => $pw['ID_PERAWATAN'],
+                            'KETERANGAN_LAYANAN' => 'Tindakan Rawat Jalan (' . $pw['ID_PERAWATAN'] . ')',
+                            'BIAYA'              => 30000,
+                            'STATUS'             => 'belum_bayar',
+                            'CREATED_AT'         => date('Y-m-d H:i:s'),
+                        ]);
+                    }
+                }
+            }
+
+            // F. Administrasi
+            $administrasiModel = new \App\Models\AdministrasiModel();
+            $adminList = $administrasiModel->where('NO_PENDAFTARAN', $noPendaftaran)->findAll();
+            foreach ($adminList as $adm) {
+                $existsAdm = $model->where('NO_PENDAFTARAN', $noPendaftaran)
+                                   ->where('JENIS_LAYANAN', 'administrasi')
+                                   ->where('ID_REFERENSI', $adm['ID_ADMINISTRASI'])
+                                   ->countAllResults();
+                if (!$existsAdm) {
+                    $model->insert([
+                        'ID_PEMBAYARAN'      => $model->generateNextId(),
+                        'NO_PENDAFTARAN'     => $noPendaftaran,
+                        'JENIS_LAYANAN'      => 'administrasi',
+                        'ID_REFERENSI'       => $adm['ID_ADMINISTRASI'],
+                        'KETERANGAN_LAYANAN' => 'Biaya Administrasi (' . $adm['ID_ADMINISTRASI'] . ')',
+                        'BIAYA'              => $adm['BIAYA'],
+                        'STATUS'             => 'belum_bayar',
+                        'CREATED_AT'         => date('Y-m-d H:i:s'),
+                    ]);
+                } else {
+                    // Update the fee if it changed in administrasi
+                    $existing = $model->where('NO_PENDAFTARAN', $noPendaftaran)
+                                      ->where('JENIS_LAYANAN', 'administrasi')
+                                      ->where('ID_REFERENSI', $adm['ID_ADMINISTRASI'])
+                                      ->first();
+                    if ($existing && $existing['STATUS'] !== 'lunas' && (float)$existing['BIAYA'] !== (float)$adm['BIAYA']) {
+                        $model->update($existing['ID_PEMBAYARAN'], [
+                            'BIAYA' => $adm['BIAYA']
                         ]);
                     }
                 }

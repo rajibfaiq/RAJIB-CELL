@@ -9,15 +9,28 @@ class Farmasi extends BaseController
     public function save()
     {
         $model = new FarmasiModel();
-        $id_farmasi = $model->generateNextId();
+        
+        $is_edit = $this->request->getPost('is_edit');
+        if ($is_edit == '1') {
+            $id_farmasi = $this->request->getPost('id_farmasi');
+        } else {
+            $id_farmasi = $model->generateNextId();
+        }
         
         $data = [
             'ID_FARMASI' => $id_farmasi,
+            'NAMA_OBAT'  => $this->request->getPost('nama_obat'),
             'JENIS_OBAT' => $this->request->getPost('jenis_obat'),
             'HARGA_OBAT' => $this->request->getPost('harga_obat'),
         ];
 
-        if ($model->save($data)) {
+        if ($is_edit == '1') {
+            $success = $model->update($id_farmasi, $data);
+        } else {
+            $success = $model->save($data);
+        }
+
+        if ($success) {
             return redirect()->to('/dashboard?page=farmasi')->with('success', 'Data Farmasi berhasil disimpan');
         } else {
             return redirect()->back()->with('error', 'Gagal menyimpan data');
